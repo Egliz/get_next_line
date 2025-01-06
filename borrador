@@ -1,0 +1,179 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   borrador                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: emorillo <emorillo@student.42barcelona.com +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2024/12/05 12:53:44 by emorillo          #+#    #+#             */
+/*   Updated: 2024/12/25 23:58:54 by emorillo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include <fcntl.h> //open
+#include <stdlib.h> //malloc, free
+#include <unistd.h> //read, close
+#include <stdio.h>
+#include "get_next_line.h"
+
+char	*get_next_line(int fd)
+{
+	int		i;
+	char	*buffer = NULL; // alocar memoria en funcion del BS
+	static char *temp = NULL; //para guardar todo lo leido
+	ssize_t b_read;
+	char	*ret = NULL;
+	int		j;
+	int		k;
+	
+	i = 0;
+	j = 0;
+	k = 0;
+
+	if (BUFFER_SIZE <= 0)
+	{
+		return (NULL);
+	}
+	buffer = malloc (BUFFER_SIZE + 1);
+	if (buffer == NULL) //verifica si la reserva de memoria fallo
+	{
+		return (NULL);
+	}
+	if (BUFFER_SIZE >= 1)//no hace falta ya que arriba verifico que no sea <=0;
+	{
+		b_read = read(fd, buffer, BUFFER_SIZE);
+		if (b_read < 0)
+		{
+			free(buffer);
+			return (NULL);
+		}
+		if (b_read >= 1)//no hace falta ya que arriba verifico que no sea <=0;
+		{
+			//hago la reserva en este punto ya que usaremos esta variable si se leyo algo, aunque nos den un BS > 1, y enn el archivo no hay nada, no necesito reseras mem para esta variable, ya que en ese caso no la usaria
+			ret = malloc (b_read + 1); //ESTO ES PARA LA VARIABLE QUE VOY A RETORNAR/??? 2-> \n y \0.
+			if (ret == NULL)
+			{
+				free (buffer);//si la reserva de memoria de ret falla, liberamos lo anterior ya que no lo necesitamos, para poder usar una hace falta la otra
+				free (ret);
+				return (NULL);
+			}
+
+			//FUNCION PARA PASAR LO LEIDO (BUFFER) A TEMP, EN ESTE CASO USARE STRJOIN
+			/*while (buffer[j] != '\0')// puedo implementar strlen
+			{
+				j++;
+			}
+			temp = malloc (BUFFER_SIZE + j + 1);
+				if (temp == NULL)//verificacion si la reserva de memoria fallo
+					{
+						free(buffer);
+						free(ret);
+						free(temp);
+						return (NULL);
+					}
+				j = 0;
+				while (buffer[j] != '\0')
+				{
+					temp[j] = buffer[i];
+					j++;	
+				}
+				temp[j] = '\0';
+				free(buffer); //lo libero en aqui ya que todo lo que habia en buffer lo puse en temp, en este momento no me hace
+*/		
+			temp = malloc (BUFFER_SIZE + 1);
+			if (temp == NULL)
+			{
+				free(buffer);
+				free(ret);
+				free(temp);
+				return (NULL);
+			}
+			while (buffer[i] != '\0')
+			{
+				temp[i] = buffer[i];
+				i++;
+			}
+			while (temp[i] != '\0')
+			{
+			  ret[j] = temp[i];
+			  j++;
+			  i++;
+			}	
+			while(temp[k] != '\n' && temp[k] != '\0')// y sea 0 -> que llego al final del archivo
+				{
+					//read(fd, buffer, BUFFER_SIZE);
+					//PUEDO IMLEMENTAR UNA FUNCION PARA ESTO. PARECIDA A LA ANTERIOR.
+					ret[j] = temp[i];//ir guardando cada letra que se concateno en temp en una variable diferente para retornarla. podria usar strdup/?????
+					j++;
+					i++;
+					k++;
+				}
+		}
+		ret[j] = '\n';
+		ret[j] = '\0';
+		i = 0;
+		if (ret[i] == temp[i] && ret[i] != '\0' && temp [i] != '\0')
+		{
+		//antes de liberar asegurarme de que todo se paso correctamente a ret, posiblemente no deba liberara dentro de la funcion, posiblemnte
+			free (temp);
+		}
+}
+	//ret[j] = '\0';
+	return(ret);//cuando llegue a \n, retornar la variable
+	
+
+//free (ret);  LIBERAR EN EL MAIN, LUEGO QUE RETORNE LA LINEA                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   = '\0';
+
+}
+
+int main(void)
+{
+    int fd;
+    char *line;
+
+    // Abre el archivo en modo solo lectura
+    fd = open("archi.txt", O_RDONLY);
+    if (fd < 0)
+    {
+        perror("Error al abrir el archivo");
+        return (1);
+    }
+
+    // Llama a get_next_line en un bucle para leer todas las líneas del archivo
+    while ((line = get_next_line(fd)) != NULL)
+    {
+        printf("%s", line);
+        free(line); // Libera la memoria asignada por get_next_line
+    }
+
+    // Cierra el archivo
+    close(fd);
+    return (0);
+}
+
+/*
+int	main(void)
+{
+//free (ret);  LIBERAR EN EL MAIN, LUEGO QUE RETORNE LA LINEA  
+	int	fd;
+	ssize_t bytes_read;
+	char	buffer[100];
+	
+	fd = open("archi.txt", O_RDONLY);
+	if (fd < 0)
+	{
+		printf("Error al abrir");
+		return (-1);
+	}
+	*get_next_line(fd);
+	printf("Leídos %zd bytes: %s\n", bytes_read, buffer);
+	bytes_read = read (fd, buffer, 10);
+	if (bytes_read < 0)
+	{
+		printf("Error al leer");
+	}
+	buffer[bytes_read] = '\0';
+	close(fd);
+	//printf("Leídos %zd bytes: %s\n", bytes_read, buffer);
+	return (0);
+}*/
